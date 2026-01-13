@@ -2,6 +2,7 @@ package com.soumya.biketracker.data.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.soumya.biketracker.domain.*
 
 @Entity(tableName = "fuel_entries")
 data class FuelEntry(
@@ -13,8 +14,8 @@ data class FuelEntry(
     val pricePerLitre: Double,
     val totalCost: Double,
     val isFullTank: Boolean,
-    val fuelType: String,
-    val fuelCompany: String,
+    val fuelCompany: FuelCompany,
+    val fuelType: FuelType,
     val notes: String?
 
 )

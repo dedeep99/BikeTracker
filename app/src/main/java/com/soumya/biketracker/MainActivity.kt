@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
 
                     if (showAddFuelScreen) {
                         AddFuelScreen(
+                            viewModel = fuelViewModel,
                             onSave = { entry ->
                                 fuelViewModel.insertFuelEntry(entry)
                                 showAddFuelScreen = false
