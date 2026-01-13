@@ -1,4 +1,4 @@
-package com.soumya.biketracke
+package com.soumya.biketracker
 
 import org.junit.Test
 

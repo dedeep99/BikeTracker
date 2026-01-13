@@ -1,6 +1,5 @@
-package com.soumya.biketracke.ui.theme
+package com.soumya.biketracker.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
