@@ -6,14 +6,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import com.soumya.biketracker.data.entity.FuelEntry
+import com.soumya.biketracker.ui.fuel.AddFuelScreen
 import com.soumya.biketracker.ui.fuel.FuelListScreen
 import com.soumya.biketracker.ui.theme.BikeTrackerTheme
 import com.soumya.biketracker.viewmodel.FuelViewModel
@@ -28,27 +35,54 @@ class MainActivity : ComponentActivity() {
         setContent {
             BikeTrackerTheme {
                 val fuelEntries by fuelViewModel.allFuelEntries.collectAsState(initial = emptyList())
+                var showAddFuelScreen by remember { mutableStateOf(false) }
+                Scaffold(
+                    floatingActionButton = {
+                        if (!showAddFuelScreen) {
+                            FloatingActionButton(onClick = {
+                                showAddFuelScreen = true
+                            }) {
+                                Text("+")
+                            }
+                        }
+                    }
+                ) { padding ->
 
-                FuelListScreen(fuelEntries = fuelEntries)
+                    if (showAddFuelScreen) {
+                        AddFuelScreen(
+                            onSave = { entry ->
+                                fuelViewModel.insertFuelEntry(entry)
+                                showAddFuelScreen = false
+                            }
+
+                        )
+                    } else {
+                        FuelListScreen(
+                            fuelEntries = fuelEntries,
+                            modifier = Modifier.padding(padding)
+                        )
+                    }
+                }
+
             }
         }
 
-        val testEntry = FuelEntry(
-            dateTime = System.currentTimeMillis(),
-            odometer = 1200,
-            pricePerLiter = 106.5,
-            quantity = 4.5,
-            totalCost = 479.25,
-            isFullTank = true,
-            fuelType = "XP95",
-            notes = "smoothest ride ever",
-            fuelCompany = "IOCL"
-        )
-        fuelViewModel.insertFuelEntry(testEntry)
+//        val testEntry = FuelEntry(
+//            dateTime = System.currentTimeMillis(),
+//            odometer = 1200.5,
+//            pricePerLitre = 106.5,
+//            quantity = 4.5,
+//            totalCost = 479.25,
+//            isFullTank = true,
+//            fuelType = "XP95",
+//            notes = "smoothest ride ever",
+//            fuelCompany = "IOCL"
+//        )
+//        fuelViewModel.insertFuelEntry(testEntry)
 
         lifecycleScope.launch {
-            fuelViewModel.allFuelEntries.collectLatest {
-                list -> Log.d("FuelDB", "Fuel entries count: ${list.size}")
+            fuelViewModel.allFuelEntries.collectLatest { list ->
+                Log.d("FuelDB", "Fuel entries count: ${list.size}")
                 list.forEach {
                     Log.d("FuelDB", it.toString())
                 }

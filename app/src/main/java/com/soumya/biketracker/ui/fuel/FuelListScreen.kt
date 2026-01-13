@@ -18,7 +18,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun FuelListScreen(fuelEntries:List<FuelEntry>){
+fun FuelListScreen(fuelEntries:List<FuelEntry>, modifier: Modifier = Modifier){
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(12.dp)
     ) {
@@ -40,12 +40,12 @@ fun FuelEntryCard(entry: FuelEntry) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = "📆️ $formattedDate")
             Text(text = "Odometer: ${entry.odometer} km")
-            Text(text = "Fuel: ${entry.quantity} L @ ₹${entry.pricePerLiter}")
+            Text(text = "Fuel: ${entry.quantity} L @ ₹${entry.pricePerLitre}")
             Text(text = "Total: ₹${entry.totalCost}")
             Text(text = "Fuel Company: ${entry.fuelCompany}")
             Text(text = "Fuel Type: ${entry.fuelType}")
             Text(text = if(entry.isFullTank) "Type: Full Tank" else "Type: Partial")
-            if(entry.notes.isNotEmpty())
+            if(!entry.notes.isNullOrEmpty())
                 Text(text = "Notes: ${entry.notes}")
 
         }

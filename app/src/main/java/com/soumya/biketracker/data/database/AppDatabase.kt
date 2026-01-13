@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import com.soumya.biketracker.data.dao.FuelDao
 import com.soumya.biketracker.data.entity.FuelEntry
 
-@Database(entities = [FuelEntry::class], version = 2, exportSchema = false)
+@Database(entities = [FuelEntry::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelDao(): FuelDao
 }

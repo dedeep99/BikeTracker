@@ -8,13 +8,13 @@ data class FuelEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val dateTime: Long,
-    val odometer: Int,
+    val odometer: Double,
     val quantity: Double,
-    val pricePerLiter: Double,
+    val pricePerLitre: Double,
     val totalCost: Double,
     val isFullTank: Boolean,
     val fuelType: String,
-    val notes: String,
-    val fuelCompany: String?
+    val fuelCompany: String,
+    val notes: String?
 
 )
