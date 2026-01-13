@@ -8,14 +8,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.soumya.biketracker.data.entity.FuelEntry
-import com.soumya.biketracker.ui.theme.BikeTrackeTheme
+import com.soumya.biketracker.ui.theme.BikeTrackerTheme
 import com.soumya.biketracker.viewmodel.FuelViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -26,25 +31,31 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BikeTrackeTheme {
+            BikeTrackerTheme {
+                val fuelEntries by fuelViewModel.allFuelEntries.collectAsState(initial = emptyList())
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    LazyColumn(
+                        modifier = Modifier.padding(innerPadding).fillMaxSize()
+                    ) {
+                        items(fuelEntries)
+                        { entry -> Text(
+                            text = "ODO: ${entry.odometer} KM | ₹${entry.totalCost}",
+                            modifier = Modifier.padding(16.dp))
+                        }
+                    }
                 }
             }
         }
 
-        val testEntry = FuelEntry(
-            dateTime = System.currentTimeMillis(),
-            odometer = 1200,
-            pricePerLiter = 106.5,
-            quantity = 4.5,
-            totalCost = 479.25,
-            isFullTank = true
-        )
-        fuelViewModel.insertFuelEntry(testEntry)
+//        val testEntry = FuelEntry(
+//            dateTime = System.currentTimeMillis(),
+//            odometer = 1200,
+//            pricePerLiter = 106.5,
+//            quantity = 4.5,
+//            totalCost = 479.25,
+//            isFullTank = true
+//        )
+//        fuelViewModel.insertFuelEntry(testEntry)
 
         lifecycleScope.launch {
             fuelViewModel.allFuelEntries.collectLatest {
@@ -70,7 +81,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    BikeTrackeTheme {
+    BikeTrackerTheme {
         Greeting("Android")
     }
 }
