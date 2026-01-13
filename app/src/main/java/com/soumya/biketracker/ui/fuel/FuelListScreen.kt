@@ -1,4 +1,55 @@
 package com.soumya.biketracker.ui.fuel
 
-class FuelListScreen {
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.soumya.biketracker.data.entity.FuelEntry
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Composable
+fun FuelListScreen(fuelEntries:List<FuelEntry>){
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(12.dp)
+    ) {
+        items(fuelEntries){
+            entry -> FuelEntryCard(entry)
+        }
+    }
+}
+
+@Composable
+fun FuelEntryCard(entry: FuelEntry) {
+    val formatter = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+    val formattedDate = formatter.format(Date(entry.dateTime))
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(text = "📆️ $formattedDate")
+            Text(text = "Odometer: ${entry.odometer} km")
+            Text(text = "Fuel: ${entry.quantity} L @ ₹${entry.pricePerLiter}")
+            Text(text = "Total: ₹${entry.totalCost}")
+            Text(text = "Fuel Company: ${entry.fuelCompany}")
+            Text(text = "Fuel Type: ${entry.fuelType}")
+            Text(text = if(entry.isFullTank) "Type: Full Tank" else "Type: Partial")
+            if(entry.notes.isNotEmpty())
+                Text(text = "Notes: ${entry.notes}")
+
+        }
+    }
+
+
 }

@@ -12,6 +12,9 @@ data class FuelEntry(
     val quantity: Double,
     val pricePerLiter: Double,
     val totalCost: Double,
-    val isFullTank: Boolean
+    val isFullTank: Boolean,
+    val fuelType: String,
+    val notes: String,
+    val fuelCompany: String?
 
 )
