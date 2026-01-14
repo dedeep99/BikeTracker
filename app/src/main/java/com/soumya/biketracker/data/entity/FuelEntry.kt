@@ -16,6 +16,7 @@ data class FuelEntry(
     val isFullTank: Boolean,
     val fuelCompany: FuelCompany,
     val fuelType: FuelType,
-    val notes: String?
+    val notes: String?,
+    val mileage: Double? = null
 
 )

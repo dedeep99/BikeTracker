@@ -15,7 +15,7 @@ object DatabaseProvider {
                         context.applicationContext,
                         AppDatabase::class.java,
                         "bike_tracker_db"
-                    ).fallbackToDestructiveMigration(true).build()
+                    ).addMigrations(MIGRATION_4_5).build()
             INSTANCE = instance
             instance
 

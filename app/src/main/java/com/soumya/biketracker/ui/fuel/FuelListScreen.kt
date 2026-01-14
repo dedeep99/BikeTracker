@@ -40,11 +40,16 @@ fun FuelEntryCard(entry: FuelEntry) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = "📆️ $formattedDate")
             Text(text = "Odometer: ${entry.odometer} km")
-            Text(text = "Fuel: ${entry.quantity} L @ ₹${entry.pricePerLitre}")
+            Text(text = "Fuel: ${entry.quantity} L @ ₹%.2f".format(entry.pricePerLitre))
             Text(text = "Total: ₹${entry.totalCost}")
             Text(text = "Fuel Company: ${entry.fuelCompany}")
             Text(text = "Fuel Type: ${entry.fuelType}")
             Text(text = if(entry.isFullTank) "Type: Full Tank" else "Type: Partial")
+            if (entry.isFullTank && entry.mileage != null) {
+                Text(
+                    text = "Mileage: %.2f km/L".format(entry.mileage)
+                )
+            }
             if(!entry.notes.isNullOrEmpty())
                 Text(text = "Notes: ${entry.notes}")
 
