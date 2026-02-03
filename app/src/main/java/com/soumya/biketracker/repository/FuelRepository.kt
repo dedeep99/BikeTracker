@@ -118,7 +118,7 @@ class FuelRepository(private val fuelDao: FuelDao) {
 
         // 🔥 FIX #2: Recalculate all future full tanks
         recalculateMileageFrom(newEntry.dateTime)
-        throw RuntimeException("CRASH TEST")
+//        throw RuntimeException("CRASH TEST")
 
     }
 
