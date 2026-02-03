@@ -15,12 +15,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelDao(): FuelDao
 }
 
-val MIGRATION_4_5 = object : Migration(2, 3) {
+val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
             "ALTER TABLE fuel_entries ADD COLUMN mileage REAL"
         )
     }
 }
-
-

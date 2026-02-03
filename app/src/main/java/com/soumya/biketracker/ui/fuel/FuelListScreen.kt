@@ -1,5 +1,6 @@
 package com.soumya.biketracker.ui.fuel
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,23 +19,37 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun FuelListScreen(fuelEntries:List<FuelEntry>, modifier: Modifier = Modifier){
+fun FuelListScreen(fuelEntries:List<FuelEntry>, modifier: Modifier = Modifier, onEntryClick: (FuelEntry) -> Unit){
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(12.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(12.dp)
     ) {
-        items(fuelEntries){
-            entry -> FuelEntryCard(entry)
+        items(fuelEntries){ entry ->
+            FuelEntryCard(
+                entry = entry,
+                onClick = { onEntryClick(entry) }
+            )
         }
     }
 }
 
 @Composable
-fun FuelEntryCard(entry: FuelEntry) {
+fun FuelEntryCard(
+    entry: FuelEntry,
+    onClick: () -> Unit
+) {
     val formatter = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
     val formattedDate = formatter.format(Date(entry.dateTime))
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .clickable {
+                android.util.Log.d("FuelClick", "Card clicked: ${entry.id}")
+                onClick()
+           },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {

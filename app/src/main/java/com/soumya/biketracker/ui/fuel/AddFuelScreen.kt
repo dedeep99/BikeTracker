@@ -2,14 +2,13 @@ package com.soumya.biketracker.ui.fuel
 
 import android.util.Log
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,16 +24,38 @@ import java.util.*
 @Composable
 fun AddFuelScreen(
     viewModel: FuelViewModel,
-    onSave: (FuelEntry) -> Unit){
-    var odometer by remember { mutableStateOf("") }
-    var totalCost by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var isFullTank by remember { mutableStateOf(true) }
-    var selectedDateTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    existingEntry: FuelEntry? = null,
+    onSaveSuccess: () -> Unit){
+
+    val isEditMode = existingEntry != null
+
+    var odometer by rememberSaveable {
+        mutableStateOf(existingEntry?.odometer?.toString() ?: "")
+    }
+
+    var quantity by rememberSaveable {
+        mutableStateOf(existingEntry?.quantity?.toString() ?: "")
+    }
+
+    var totalCost by rememberSaveable {
+        mutableStateOf(existingEntry?.totalCost?.toString() ?: "")
+    }
+
+    var notes by rememberSaveable {
+        mutableStateOf(existingEntry?.notes ?: "")
+    }
+
+    var isFullTank by rememberSaveable {
+        mutableStateOf(existingEntry?.isFullTank ?: true)
+    }
+
+    var selectedDateTime by remember {
+        mutableLongStateOf(existingEntry?.dateTime ?: System.currentTimeMillis())
+    }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+
 
     val formatter = remember {
         SimpleDateFormat("dd MMM yyyy • HH:mm", Locale.getDefault())
@@ -43,24 +64,52 @@ fun AddFuelScreen(
     var selectedFuelType by remember { mutableStateOf<FuelType?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val repoErrorMessage by viewModel.errorMessage.collectAsState()
+
+
+
     val fuelCompanies = viewModel.fuelCompanies
     val selectedCompany = viewModel.selectedCompany.value
     val availableFuelTypes = viewModel.availableFuelTypes.value
 
     LaunchedEffect(selectedCompany) {
-        selectedFuelType = null
+        if (!isEditMode) {
+            selectedFuelType = null
+        }
     }
+
+    LaunchedEffect(existingEntry) {
+        if (existingEntry != null) {
+            viewModel.onCompanySelected(existingEntry.fuelCompany)
+            selectedFuelType = existingEntry.fuelType
+            selectedDateTime = existingEntry.dateTime
+        }
+    }
+
+
+
     LaunchedEffect(showDatePicker) {
         Log.d("AddFuelScreen", "showDatePicker = $showDatePicker")
     }
+
+    LaunchedEffect(Unit) {
+        viewModel.saveSuccess.collect {
+            onSaveSuccess()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        Log.d("AddFuelScreen", "Edit mode = ${existingEntry != null}")
+    }
+
 
 
     val odometerValue = odometer.toDoubleOrNull()
     val quantityValue = quantity.toDoubleOrNull()
     val totalCostValue = totalCost.toDoubleOrNull()
 
-    val odometerError =
-        odometer.isNotBlank() && (odometerValue == null || odometerValue <= 0.0)
+    val localOdometerError =
+        odometer.isNotBlank() && (odometerValue == null || odometerValue < 0.0)
 
     val quantityError =
         quantity.isNotBlank() && (quantityValue == null || quantityValue <= 0.0)
@@ -68,7 +117,10 @@ fun AddFuelScreen(
     val totalCostError =
         totalCost.isNotBlank() && (totalCostValue == null || totalCostValue <= 0.0)
 
+    val repoOdometerError =
+        repoErrorMessage?.contains("Odometer", ignoreCase = true) == true
 
+    val odometerError = localOdometerError || repoOdometerError
 
     val isFormValid =
         odometerValue != null && odometerValue > 0 &&
@@ -84,38 +136,6 @@ fun AddFuelScreen(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-//            Text(
-//                text = "Date & Time: $formattedDateTime",
-//                modifier = Modifier.fillMaxWidth().clickable{
-//                    val currentCal = calendar.apply {
-//                        timeInMillis = selectedDateTime
-//                    }
-//
-//                    DatePickerDialog(context, { _, year, month, dayOfMonth ->
-//                        currentCal.set(Calendar.YEAR, year)
-//                        currentCal.set(Calendar.MONTH, month)
-//                        currentCal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-//
-//                        TimePickerDialog(context, { _, hour, minute ->
-//                            currentCal.set(Calendar.HOUR_OF_DAY, hour)
-//                            currentCal.set(Calendar.MINUTE, minute)
-//                            selectedDateTime = currentCal.timeInMillis
-//                        },
-//                            currentCal.get(Calendar.HOUR_OF_DAY),
-//                            currentCal.get(Calendar.MINUTE),
-//                            false
-//                        ).show()
-//                        },
-//                        currentCal.get(Calendar.YEAR),
-//                        currentCal.get(Calendar.MONTH),
-//                        currentCal.get(Calendar.DAY_OF_MONTH)
-//                    ).show()
-//                    }.padding(12.dp),
-//
-//                style = MaterialTheme . typography . bodyMedium
-//            )
-            val interactionSource = remember { MutableInteractionSource() }
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,20 +163,34 @@ fun AddFuelScreen(
                 )
             }
 
-
             OutlinedTextField(
                 value = odometer,
-                onValueChange = { odometer = it },
+                onValueChange = {
+                    odometer = it
+
+                    // Clear repo error when user edits
+                    if (repoOdometerError) {
+                        viewModel.clearError()
+                    }
+                },
                 label = { Text("Odometer (km)") },
                 isError = odometerError,
                 supportingText = {
-                    if (odometerError) {
-                        Text("Enter a valid number")
+                    when {
+                        localOdometerError ->
+                            Text("Enter a valid number")
+
+                        repoOdometerError ->
+                            Text(
+                                repoErrorMessage ?: "",
+                                color = MaterialTheme.colorScheme.error
+                            )
                     }
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
+
 
             OutlinedTextField(
                 value = totalCost,
@@ -233,6 +267,7 @@ fun AddFuelScreen(
                     val pricePerLitre = total/qty
 
                     val entry = FuelEntry(
+                        id = existingEntry?.id ?: 0L,
                         dateTime = selectedDateTime,
                         odometer = odo,
                         pricePerLitre = pricePerLitre,
@@ -241,10 +276,12 @@ fun AddFuelScreen(
                         isFullTank = isFullTank,
                         fuelCompany = selectedCompany!!,
                         fuelType = selectedFuelType!!,
-                        notes = notes.ifEmpty { null }
+                        notes = notes.ifEmpty { null },
+                        mileage = existingEntry?.mileage
                     )
 
-                    onSave(entry)
+                    viewModel.saveFuelEntry(oldEntry = existingEntry, newEntry = entry)
+
                 },
             ) {
                 Text("Save Fuel Entry")

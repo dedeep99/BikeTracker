@@ -35,7 +35,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             BikeTrackerTheme {
                 val fuelEntries by fuelViewModel.allFuelEntries.collectAsState(initial = emptyList())
-                var showAddFuelScreen by remember { mutableStateOf(false) }
+                var showAddFuelScreen by remember { mutableStateOf(false)}
+                var selectedEntry by remember { mutableStateOf<FuelEntry?>(null) }
                 Scaffold(
                     floatingActionButton = {
                         if (!showAddFuelScreen) {
@@ -51,17 +52,24 @@ class MainActivity : ComponentActivity() {
                     if (showAddFuelScreen) {
                         AddFuelScreen(
                             viewModel = fuelViewModel,
-                            onSave = { entry ->
-                                fuelViewModel.insertFuelEntry(entry)
+                            existingEntry = selectedEntry,
+                            onSaveSuccess = {
                                 showAddFuelScreen = false
+                                selectedEntry = null
                             }
 
                         )
                     } else {
                         FuelListScreen(
                             fuelEntries = fuelEntries,
-                            modifier = Modifier.padding(padding)
+                            modifier = Modifier.padding(padding),
+                            onEntryClick = { entry ->
+                                Log.d("MainActivity", "Navigating to edit for id=${entry.id}")
+                                selectedEntry = entry
+                                showAddFuelScreen = true
+                            }
                         )
+
                     }
                 }
 

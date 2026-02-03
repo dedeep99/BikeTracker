@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.soumya.biketracke"
+        applicationId = "com.soumya.biketracker"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -52,17 +52,24 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+
     // Room Database
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.core.ktx)
     ksp(libs.room.compiler)
 
-
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.androidx.core.testing)
+    testImplementation(libs.robolectric)
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(kotlin("test"))
 }
