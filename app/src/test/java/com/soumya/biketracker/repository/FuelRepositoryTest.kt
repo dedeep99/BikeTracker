@@ -105,7 +105,7 @@ class FuelRepositoryTest {
 
         val partial = dao.getAllOnce().first { !it.isFullTank }
 
-        repository.updateFuelEntry(
+        repository.updateAndRecalculateMileage(
             oldEntry = partial,
             newEntry = partial.copy(quantity = 5.0)
         )
@@ -126,7 +126,7 @@ class FuelRepositoryTest {
 
         val firstFull = dao.getAllOnce().first()
 
-        repository.updateFuelEntry(
+        repository.updateAndRecalculateMileage(
             oldEntry = firstFull,
             newEntry = firstFull.copy(quantity = 10.0)
         )
@@ -147,7 +147,7 @@ class FuelRepositoryTest {
 
         val firstFull = dao.getAllOnce().first()
 
-        repository.updateFuelEntry(
+        repository.updateAndRecalculateMileage(
             oldEntry = firstFull,
             newEntry = firstFull.copy(odometer = 120.0)
         )
@@ -208,7 +208,7 @@ class FuelRepositoryTest {
         // 🔧 Update F3 quantity
         val f3Updated = f3Before.copy(quantity = 10.0)
 
-        repository.updateFuelEntry(
+        repository.updateAndRecalculateMileage(
             oldEntry = f3Before,
             newEntry = f3Updated
         )
@@ -254,7 +254,7 @@ class FuelRepositoryTest {
         // Act: update F2 odometer
         val f2New = f2Old.copy(odometer = 250.0)
 
-        repository.updateFuelEntry(
+        repository.updateAndRecalculateMileage(
             oldEntry = f2Old,
             newEntry = f2New
         )
@@ -322,7 +322,7 @@ class FuelRepositoryTest {
         val p1Old = before[1]
         val p1New = p1Old.copy(quantity = 10.0)
 
-        repository.updateFuelEntry(
+        repository.updateAndRecalculateMileage(
             oldEntry = p1Old,
             newEntry = p1New
         )

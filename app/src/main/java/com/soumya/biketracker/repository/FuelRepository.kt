@@ -34,12 +34,12 @@ class FuelRepository(private val fuelDao: FuelDao) {
         val previousFullTank =
             fuelDao.getPreviousFullTank(entry.dateTime)
 
-        Log.d("MileageDebug", "Full tank detected")
-
-        Log.d(
-            "MileageDebug",
-            "Previous full tank: ${previousFullTank?.odometer}"
-        )
+//        Log.d("MileageDebug", "Full tank detected")
+//
+//        Log.d(
+//            "MileageDebug",
+//            "Previous full tank: ${previousFullTank?.odometer}"
+//        )
 
         // First ever full tank → no mileage
         if (previousFullTank == null) {
@@ -57,10 +57,10 @@ class FuelRepository(private val fuelDao: FuelDao) {
 
         val totalFuelConsumed = fuelBetween + entry.quantity
 
-        Log.d(
-            "MileageDebug",
-            "start time=${previousFullTank.dateTime} end time=${entry.dateTime}"
-        )
+//        Log.d(
+//            "MileageDebug",
+//            "start time=${previousFullTank.dateTime} end time=${entry.dateTime}"
+//        )
 
         val distanceTravelled =
             entry.odometer - previousFullTank.odometer
@@ -70,10 +70,10 @@ class FuelRepository(private val fuelDao: FuelDao) {
                 distanceTravelled / totalFuelConsumed
             else null
 
-        Log.d(
-            "MileageDebug",
-            "distance=$distanceTravelled fuel=$totalFuelConsumed mileage=$mileage"
-        )
+//        Log.d(
+//            "MileageDebug",
+//            "distance=$distanceTravelled fuel=$totalFuelConsumed mileage=$mileage"
+//        )
 
 
         fuelDao.insertFuelEntry(
@@ -101,16 +101,15 @@ class FuelRepository(private val fuelDao: FuelDao) {
         }
     }
 
-
-    suspend fun updateFuelEntry(
+    @Transaction
+    suspend fun updateAndRecalculateMileage(
         oldEntry: FuelEntry,
         newEntry: FuelEntry
     ) {
         validateOdometer(newEntry)
-
         fuelDao.updateFuelEntry(newEntry)
 
-        dumpFuelTable("AFTER UPDATE")
+//        dumpFuelTable("AFTER UPDATE")
 
         // 🔥 FIX #1: Recalculate the updated full tank itself
         if (newEntry.isFullTank) {
@@ -119,6 +118,7 @@ class FuelRepository(private val fuelDao: FuelDao) {
 
         // 🔥 FIX #2: Recalculate all future full tanks
         recalculateMileageFrom(newEntry.dateTime)
+        throw RuntimeException("CRASH TEST")
 
     }
 

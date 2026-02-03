@@ -64,7 +64,7 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
                 if (oldEntry == null) {
                     repository.insertFuelEntry(newEntry)
                 } else {
-                    repository.updateFuelEntry(
+                    repository.updateAndRecalculateMileage(
                         oldEntry = oldEntry,
                         newEntry = newEntry
                     )
