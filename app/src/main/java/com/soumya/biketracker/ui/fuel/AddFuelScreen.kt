@@ -122,6 +122,10 @@ fun AddFuelScreen(
 
     val odometerError = localOdometerError || repoOdometerError
 
+    val repoDateTimeError =
+        repoErrorMessage?.contains("date and time", ignoreCase = true) == true
+
+
     val isFormValid =
         odometerValue != null && odometerValue > 0 &&
                 quantityValue != null && quantityValue > 0 &&
@@ -145,8 +149,17 @@ fun AddFuelScreen(
                     value = formatter.format(Date(selectedDateTime)),
                     onValueChange = {},
                     readOnly = true,
-                    enabled = false, // 🔑 MUST be false
+                    enabled = false,
+                    isError = repoDateTimeError,
                     label = { Text("Date & Time") },
+                    supportingText = {
+                        if (repoDateTimeError) {
+                            Text(
+                                text = repoErrorMessage ?: "",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.DateRange,
@@ -161,6 +174,7 @@ fun AddFuelScreen(
                         disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
+
             }
 
             OutlinedTextField(
@@ -311,6 +325,7 @@ fun AddFuelScreen(
                         val date = datePickerState.selectedDateMillis
                         if (date != null) {
                             selectedDateTime = date
+                            viewModel.clearError()
                             showDatePicker = false
                             showTimePicker = true
                         }
@@ -341,6 +356,7 @@ fun AddFuelScreen(
                         calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                         calendar.set(Calendar.MINUTE, timePickerState.minute)
                         selectedDateTime = calendar.timeInMillis
+                        viewModel.clearError()
                         showTimePicker = false
                     }) {
                         Text("OK")

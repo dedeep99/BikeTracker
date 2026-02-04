@@ -1,10 +1,14 @@
 package com.soumya.biketracker.data.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.soumya.biketracker.domain.*
 
-@Entity(tableName = "fuel_entries")
+@Entity(tableName = "fuel_entries",
+        indices = [
+            Index(value = ["dateTime"], unique = true)
+])
 data class FuelEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

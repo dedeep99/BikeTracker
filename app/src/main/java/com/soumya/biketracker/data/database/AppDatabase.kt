@@ -9,16 +9,31 @@ import com.soumya.biketracker.data.dao.FuelDao
 import com.soumya.biketracker.data.database.converters.FuelConverters
 import com.soumya.biketracker.data.entity.FuelEntry
 
-@Database(entities = [FuelEntry::class], version = 5, exportSchema = false)
+@Database(entities = [FuelEntry::class], version = 6, exportSchema = false)
 @TypeConverters(FuelConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelDao(): FuelDao
 }
 
-val MIGRATION_4_5 = object : Migration(4, 5) {
+val MIGRATION_5_6 = object : Migration(5, 6) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            "ALTER TABLE fuel_entries ADD COLUMN mileage REAL"
-        )
+
+        // 1️⃣ Remove duplicates (keep lowest id per dateTime)
+        db.execSQL("""
+            DELETE FROM fuel_entries
+            WHERE id NOT IN (
+                SELECT MIN(id)
+                FROM fuel_entries
+                GROUP BY dateTime
+            )
+        """)
+
+        // 2️⃣ Now safely create UNIQUE index
+        db.execSQL("""
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            index_fuel_entries_dateTime
+            ON fuel_entries(dateTime)
+        """)
     }
 }
+

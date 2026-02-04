@@ -50,6 +50,12 @@ class MainActivity : ComponentActivity() {
                 ) { padding ->
 
                     if (showAddFuelScreen) {
+
+                        androidx.activity.compose.BackHandler {
+                            showAddFuelScreen = false
+                            selectedEntry = null
+                        }
+
                         AddFuelScreen(
                             viewModel = fuelViewModel,
                             existingEntry = selectedEntry,
@@ -57,9 +63,8 @@ class MainActivity : ComponentActivity() {
                                 showAddFuelScreen = false
                                 selectedEntry = null
                             }
-
                         )
-                    } else {
+                } else {
                         FuelListScreen(
                             fuelEntries = fuelEntries,
                             modifier = Modifier.padding(padding),

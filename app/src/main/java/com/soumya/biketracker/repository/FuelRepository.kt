@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.room.Transaction
 import com.soumya.biketracker.data.dao.FuelDao
 import com.soumya.biketracker.data.entity.FuelEntry
+import com.soumya.biketracker.domain.FuelCycle
 import kotlinx.coroutines.flow.Flow
 
 private const val DEBUG_MILEAGE = false
@@ -20,83 +21,90 @@ class FuelRepository(private val fuelDao: FuelDao) {
     }
 
     suspend fun insertFuelEntry(entry: FuelEntry) {
-        Log.d("MileageDebug", "Insert called. isFullTank=${entry.isFullTank}")
-
         validateOdometer(entry)
 
-        // Partial fill → just store it
-        if (!entry.isFullTank) {
+        try {
             fuelDao.insertFuelEntry(entry)
-            return
-        }
-
-        // Find previous full tank
-        val previousFullTank =
-            fuelDao.getPreviousFullTank(entry.dateTime)
-
-//        Log.d("MileageDebug", "Full tank detected")
-//
-//        Log.d(
-//            "MileageDebug",
-//            "Previous full tank: ${previousFullTank?.odometer}"
-//        )
-
-        // First ever full tank → no mileage
-        if (previousFullTank == null) {
-            fuelDao.insertFuelEntry(entry)
-            return
-        }
-
-        // Fuel consumed between tanks
-
-        val fuelBetween =
-            fuelDao.getFuelConsumedBetween(
-                startTime = previousFullTank.dateTime,
-                endTime = entry.dateTime
+        } catch (e: android.database.sqlite.SQLiteConstraintException) {
+            throw IllegalArgumentException(
+                "An entry already exists for this date and time"
             )
+        }
 
-        val totalFuelConsumed = fuelBetween + entry.quantity
-
-//        Log.d(
-//            "MileageDebug",
-//            "start time=${previousFullTank.dateTime} end time=${entry.dateTime}"
-//        )
-
-        val distanceTravelled =
-            entry.odometer - previousFullTank.odometer
-
-        val mileage =
-            if (distanceTravelled > 0 && totalFuelConsumed > 0)
-                distanceTravelled / totalFuelConsumed
-            else null
-
-//        Log.d(
-//            "MileageDebug",
-//            "distance=$distanceTravelled fuel=$totalFuelConsumed mileage=$mileage"
-//        )
-
-
-        fuelDao.insertFuelEntry(
-            entry.copy(mileage = mileage)
-        )
-
-
+        recalculateMileageFrom(entry)
     }
 
     suspend fun clearAll() {
         fuelDao.clearAll()
     }
 
-    private suspend fun validateOdometer(entry: FuelEntry) {
-        val previousEntry =
-            fuelDao.getPreviousEntry(entry.dateTime)
+    private suspend fun buildFuelCycle(
+        currentFull: FuelEntry
+    ): FuelCycle {
 
-        if (
-            previousEntry != null &&
-            entry.odometer < previousEntry.odometer
-        ) {
+        require(currentFull.isFullTank)
+
+        val previousFull =
+            fuelDao.getPreviousFullTank(currentFull.dateTime)
+                ?: return FuelCycle(
+                    previousFull = null,
+                    currentFull = currentFull,
+                    fuelConsumed = 0.0,
+                    distance = 0.0,
+                    mileage = null
+                )
+
+        val fuelBetween =
+            fuelDao.getFuelConsumedBetween(
+                startTime = previousFull.dateTime,
+                endTime = currentFull.dateTime
+            )
+
+        val totalFuel = fuelBetween + currentFull.quantity
+        val distance = currentFull.odometer - previousFull.odometer
+
+        val mileage =
+            if (distance > 0 && totalFuel > 0)
+                distance / totalFuel
+            else null
+
+        return FuelCycle(
+            previousFull = previousFull,
+            currentFull = currentFull,
+            fuelConsumed = totalFuel,
+            distance = distance,
+            mileage = mileage
+        )
+    }
+
+
+    private suspend fun validateOdometer(entry: FuelEntry) {
+
+        val before = fuelDao.getEntryBefore(entry.dateTime)
+            ?.takeIf { it.id != entry.id }
+
+        val after = fuelDao.getEntryAfter(entry.dateTime)
+            ?.takeIf { it.id != entry.id }
+
+        if (before != null && entry.odometer <= before.odometer) {
             throw IllegalArgumentException(
-                "Odometer cannot be less than previous entry (${previousEntry.odometer} km)"
+                "Odometer cannot be less than or equal to previous entry (${before.odometer} km)"
+            )
+        }
+
+        if (after != null && entry.odometer >= after.odometer) {
+            throw IllegalArgumentException(
+                "Odometer cannot be greater than or equal to next entry (${after.odometer} km)"
+            )
+        }
+
+        val sameTimeEntry =
+            fuelDao.getEntryAtTime(entry.dateTime)
+                ?.takeIf { it.id != entry.id }
+
+        if (sameTimeEntry != null) {
+            throw IllegalArgumentException(
+                "An entry already exists at this date and time"
             )
         }
     }
@@ -109,23 +117,12 @@ class FuelRepository(private val fuelDao: FuelDao) {
         validateOdometer(newEntry)
         fuelDao.updateFuelEntry(newEntry)
 
-//        dumpFuelTable("AFTER UPDATE")
-
-        // 🔥 FIX #1: Recalculate the updated full tank itself
-        if (newEntry.isFullTank) {
-            recalculateSingleFullTank(newEntry)
-        }
-
-        // 🔥 FIX #2: Recalculate all future full tanks
-        recalculateMileageFrom(newEntry.dateTime)
-//        throw RuntimeException("CRASH TEST")
-
+        recalculateMileageFrom(newEntry)
     }
 
     suspend fun deleteFuelEntry(entry: FuelEntry) {
         fuelDao.deleteFuelEntry(entry)
-
-        recalculateMileageFrom(entry.dateTime)
+        recalculateMileageFrom(entry)
     }
 
     suspend fun dumpFuelTable(tag: String) {
@@ -142,127 +139,39 @@ class FuelRepository(private val fuelDao: FuelDao) {
         println("===========================")
     }
 
-    private suspend fun recalculateSingleFullTank(entry: FuelEntry) {
-
-        if (!entry.isFullTank) return
-
-        val previousFullTank =
-            fuelDao.getPreviousFullTank(entry.dateTime)
-
-        // First full tank → no mileage
-        if (previousFullTank == null) {
-            fuelDao.updateMileage(entry.id, null)
-            return
-        }
-
-        val fuelBetween =
-            fuelDao.getFuelConsumedBetween(
-                startTime = previousFullTank.dateTime,
-                endTime = entry.dateTime
-            )
-
-        val totalFuelConsumed =
-            fuelBetween + entry.quantity
-
-        val distanceTravelled =
-            entry.odometer - previousFullTank.odometer
-
-        val mileage =
-            if (distanceTravelled > 0 && totalFuelConsumed > 0)
-                distanceTravelled / totalFuelConsumed
-            else
-                null
-
-        fuelDao.updateMileage(
-            id = entry.id,
-            mileage = mileage
-        )
-    }
-
-
-
 
     @Transaction
-    suspend fun recalculateMileageFrom(changedDateTime: Long) {
-
-//        debug("=== Recalculate from $changedDateTime ===")
-
+    suspend fun recalculateMileageFrom(
+        changedEntry: FuelEntry
+    ) {
+        // 🔥 ALWAYS start from the changed full tank itself
         var currentFullTank =
-            fuelDao.getNextFullTank(changedDateTime)
+            if (changedEntry.isFullTank) {
+                // Re-fetch from DB to get correct ID/state
+                fuelDao.getPreviousFullTank(changedEntry.dateTime)
+                    ?.let { fuelDao.getNextFullTank(it.dateTime) }
+                    ?: fuelDao.getNextFullTank(changedEntry.dateTime)
+            } else {
+                val previousFull =
+                    fuelDao.getPreviousFullTank(changedEntry.dateTime)
 
-        while (currentFullTank != null) {
-
-//            debug("Current FULL tank: id=${currentFullTank.id}, time=${currentFullTank.dateTime}, odo=${currentFullTank.odometer}, qty=${currentFullTank.quantity}")
-
-
-            val previousFullTank =
-                fuelDao.getPreviousFullTank(currentFullTank.dateTime)
-
-            // First full tank → no mileage
-            if (previousFullTank == null) {
-
-//                debug("→ No previous full tank, mileage = null")
-
-                fuelDao.updateMileage(
-                    id = currentFullTank.id,
-                    mileage = null
-                )
-
-                currentFullTank =
-                    fuelDao.getNextFullTank(currentFullTank.dateTime)
-                continue
+                if (previousFull != null)
+                    fuelDao.getNextFullTank(previousFull.dateTime)
+                else
+                    fuelDao.getNextFullTank(changedEntry.dateTime)
             }
 
-            // Fuel consumed BETWEEN tanks
-            val fuelBetween =
-                fuelDao.getFuelConsumedBetween(
-                    startTime = previousFullTank.dateTime,
-                    endTime = currentFullTank.dateTime
-                )
-
-//            debug("Fuel between (DAO result) = $fuelBetween")
-
-            // 🔥 IMPORTANT: include current full tank fuel
-            val totalFuelConsumed =
-                fuelBetween + currentFullTank.quantity
-
-//            debug("Total fuel used (after adding current full) = $totalFuelConsumed")
-
-            val distanceTravelled =
-                currentFullTank.odometer - previousFullTank.odometer
-
-
-//            debug("Distance travelled = $distanceTravelled")
-
-            val mileage =
-                if (distanceTravelled > 0 && totalFuelConsumed > 0)
-                    distanceTravelled / totalFuelConsumed
-                else
-                    null
-
-//            debug("Calculated mileage = $mileage")
+        while (currentFullTank != null) {
+            val cycle = buildFuelCycle(currentFullTank)
 
             fuelDao.updateMileage(
                 id = currentFullTank.id,
-                mileage = mileage
+                mileage = cycle.mileage
             )
 
-            // Move forward
             currentFullTank =
                 fuelDao.getNextFullTank(currentFullTank.dateTime)
-
-            val entriesBetween =
-                fuelDao.debugEntriesBetween(
-                    previousFullTank.dateTime,
-                    currentFullTank?.dateTime ?: previousFullTank.dateTime
-                )
-
-//            entriesBetween.forEach {
-//                debug("ENTRY BETWEEN → time=${it.dateTime}, qty=${it.quantity}, full=${it.isFullTank}")
-//            }
-
         }
-
     }
 
 }

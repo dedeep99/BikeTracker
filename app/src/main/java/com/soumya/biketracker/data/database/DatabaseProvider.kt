@@ -15,7 +15,7 @@ object DatabaseProvider {
                         context.applicationContext,
                         AppDatabase::class.java,
                         "bike_tracker_db"
-                    ).addMigrations(MIGRATION_4_5).build()
+                    ).addMigrations(MIGRATION_5_6).build()
             INSTANCE = instance
             instance
 

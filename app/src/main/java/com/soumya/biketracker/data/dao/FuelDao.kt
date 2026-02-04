@@ -98,6 +98,31 @@ interface FuelDao {
         endTime: Long
     ): List<FuelEntry>
 
+    @Query("""
+    SELECT * FROM fuel_entries
+    WHERE dateTime < :time
+    ORDER BY dateTime DESC
+    LIMIT 1
+""")
+    suspend fun getEntryBefore(time: Long): FuelEntry?
+
+    @Query("""
+    SELECT * FROM fuel_entries
+    WHERE dateTime > :time
+    ORDER BY dateTime ASC
+    LIMIT 1
+""")
+    suspend fun getEntryAfter(time: Long): FuelEntry?
+
+    @Query("""
+    SELECT * FROM fuel_entries
+    WHERE dateTime = :time
+    LIMIT 1
+""")
+    suspend fun getEntryAtTime(time: Long): FuelEntry?
+
+
+
 
 
 }
